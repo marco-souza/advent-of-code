@@ -14,31 +14,38 @@ fn main() {
         let Some((id, line)) = line.split_once(": ") else {
             panic!("error on split line")
         };
+        let Ok(id) = id.parse::<u32>() else {
+            panic!("failing parsing id '{}'", id);
+        };
 
-        if is_line_valid(line.to_string()) {
-            let Ok(id) = id.parse::<u32>() else {
-                panic!("failing parsing id '{}'", id);
-            };
-            total += id;
-            println!("possible game => id: {} total: {}", id, total);
-        }
+        let colors = calc_min_colors(line.to_string());
+        let (red, green, blue) = colors;
+        let power = red * green * blue;
+
+        total += power;
+
+        println!(
+            "game {} -> colors: {:?} t: {} p: {}",
+            id, colors, total, power
+        );
     }
 
     println!("total: {}", total);
 }
 
-fn is_line_valid(line: String) -> bool {
+fn calc_min_colors(line: String) -> (u32, u32, u32) {
+    let (mut red, mut green, mut blue) = (0, 0, 0);
+
     for round in line.split("; ") {
         for hand in round.split(", ") {
-            if !is_possible_hard(hand.to_string(), (12, 13, 14)) {
-                return false;
-            }
+            (red, green, blue) = get_min_required_colors(hand.to_string(), (red, green, blue));
         }
     }
-    return true;
+
+    return (red, green, blue);
 }
 
-fn is_possible_hard(hand: String, (red, green, blue): (u32, u32, u32)) -> bool {
+fn get_min_required_colors(hand: String, (red, green, blue): (u32, u32, u32)) -> (u32, u32, u32) {
     let Some((num, color)) = hand.split_once(" ") else {
         panic!("error on split hand");
     };
@@ -47,11 +54,18 @@ fn is_possible_hard(hand: String, (red, green, blue): (u32, u32, u32)) -> bool {
     };
 
     match color {
-        "red" => num <= red,
-        "green" => num <= green,
-        "blue" => num <= blue,
+        "red" => (max(red, num), green, blue),
+        "green" => (red, max(green, num), blue),
+        "blue" => (red, green, max(blue, num)),
         _ => {
             panic!("wrong color {}", color);
         }
+    }
+}
+
+fn max(n1: u32, n2: u32) -> u32 {
+    match n1 > n2 {
+        true => n1,
+        false => n2,
     }
 }
